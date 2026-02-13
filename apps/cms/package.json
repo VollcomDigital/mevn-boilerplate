@@ -1,0 +1,20 @@
+{
+  "name": "@mevn/cms",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "strapi build",
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "lint": "echo \"No lint configured for @mevn/cms\"",
+    "typecheck": "echo \"No typecheck configured for @mevn/cms\"",
+    "clean": "rimraf .cache build"
+  },
+  "dependencies": {
+    "@strapi/strapi": "^5.0.0",
+    "better-sqlite3": "^12.0.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  }
+}

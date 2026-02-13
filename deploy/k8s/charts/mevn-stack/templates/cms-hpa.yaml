@@ -1,0 +1,29 @@
+{{- if and .Values.cms.enabled .Values.cms.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "mevn-stack.fullname" . }}-cms
+  labels:
+    app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+    app.kubernetes.io/component: cms
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "mevn-stack.fullname" . }}-cms
+  minReplicas: {{ .Values.cms.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.cms.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.cms.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.cms.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}

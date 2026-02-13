@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mevn-stack
+description: Cloud native MEVN stack (Nuxt 4, Express 5, Strapi 5) for Kubernetes.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

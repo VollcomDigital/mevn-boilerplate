@@ -1,0 +1,27 @@
+{
+  "name": "cloud-native-mevn-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cloud native MEVN monorepo scaffold with Turborepo, Nuxt 4, Express 5, Strapi 5, and Helm.",
+  "packageManager": "pnpm@10.6.5",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  }
+}

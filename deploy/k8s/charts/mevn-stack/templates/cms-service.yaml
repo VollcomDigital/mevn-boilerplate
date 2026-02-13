@@ -1,0 +1,19 @@
+{{- if .Values.cms.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mevn-stack.fullname" . }}-cms
+  labels:
+    app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+    app.kubernetes.io/component: cms
+spec:
+  type: {{ .Values.cms.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+    app.kubernetes.io/component: cms
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.cms.service.port }}
+      targetPort: http
+{{- end }}
