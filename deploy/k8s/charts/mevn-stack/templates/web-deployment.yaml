@@ -1,0 +1,69 @@
+{{- if .Values.web.enabled }}
+{{- $webEnv := .Values.web.env | default dict }}
+{{- $defaultApiBaseUrl := printf "http://%s-api.%s.svc.cluster.local:%v" (include "mevn-stack.fullname" .) .Release.Namespace .Values.api.service.port }}
+{{- $resolvedApiBaseUrl := (index $webEnv "NUXT_PUBLIC_API_BASE_URL") | default $defaultApiBaseUrl }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mevn-stack.fullname" . }}-web
+  labels:
+    {{- include "mevn-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  replicas: {{ .Values.web.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mevn-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        {{- include "mevn-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: web
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: web
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.web.containerPort }}
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.global.nodeEnv | quote }}
+            - name: NITRO_HOST
+              value: "0.0.0.0"
+            - name: NITRO_PORT
+              value: {{ .Values.web.containerPort | quote }}
+            - name: NUXT_PUBLIC_API_BASE_URL
+              value: {{ $resolvedApiBaseUrl | quote }}
+            {{- range $name, $value := $webEnv }}
+            {{- if ne $name "NUXT_PUBLIC_API_BASE_URL" }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.web.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.web.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.web.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.web.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.web.probes.readiness.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.web.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.web.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.web.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.web.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.web.probes.liveness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+{{- end }}

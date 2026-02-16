@@ -1,0 +1,21 @@
+{
+  "name": "@mevn/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --host 0.0.0.0 --port 3000",
+    "start": "node .output/server/index.mjs",
+    "preview": "nuxt preview",
+    "lint": "echo \"No lint configured for @mevn/web\"",
+    "typecheck": "nuxt typecheck",
+    "clean": "rimraf .nuxt .output"
+  },
+  "dependencies": {
+    "@mevn/shared": "workspace:*",
+    "nuxt": "^4.1.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  }
+}

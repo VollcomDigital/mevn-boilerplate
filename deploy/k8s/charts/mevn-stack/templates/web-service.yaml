@@ -1,0 +1,19 @@
+{{- if .Values.web.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mevn-stack.fullname" . }}-web
+  labels:
+    {{- include "mevn-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  type: {{ .Values.web.service.type }}
+  selector:
+    {{- include "mevn-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.web.service.port }}
+      targetPort: http
+{{- end }}
