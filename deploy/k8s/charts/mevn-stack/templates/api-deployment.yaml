@@ -27,10 +27,23 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: api
           image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: {{ .Values.api.containerPort }}
@@ -38,9 +51,20 @@ spec:
             - name: NODE_ENV
               value: {{ .Values.global.nodeEnv | quote }}
             - name: MONGO_URI
-              value: {{ .Values.global.mongoUri | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-database-secrets
+                  key: mongo-uri
             - name: REDIS_URL
-              value: {{ .Values.global.redisUrl | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-database-secrets
+                  key: redis-url
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-api-secrets
+                  key: session-secret
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: {{ .Values.global.otelEndpoint | quote }}
             {{- range $name, $value := .Values.api.env }}

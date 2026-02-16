@@ -1,0 +1,16 @@
+node_modules
+.pnpm-store
+dist
+build
+.output
+.nuxt
+.turbo
+.cache
+.strapi
+coverage
+pnpm-lock.yaml
+package-lock.json
+*.log
+
+# Ignore auto-generated files
+apps/cms/types

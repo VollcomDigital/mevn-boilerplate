@@ -13,7 +13,7 @@ COPY package.json pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --filter @mevn/shared... --filter @mevn/web... --no-frozen-lockfile
+RUN pnpm install --filter @mevn/shared... --filter @mevn/web... --frozen-lockfile
 
 FROM deps AS builder
 
