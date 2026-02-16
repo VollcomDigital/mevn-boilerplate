@@ -4,12 +4,12 @@ kind: Service
 metadata:
   name: {{ include "mevn-stack.fullname" . }}-api
   labels:
-    app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+    {{- include "mevn-stack.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
 spec:
   type: {{ .Values.api.service.type }}
   selector:
-    app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+    {{- include "mevn-stack.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: api
   ports:
     - name: http

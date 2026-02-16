@@ -1,21 +1,24 @@
 {{- if .Values.web.enabled }}
+{{- $webEnv := .Values.web.env | default dict }}
+{{- $defaultApiBaseUrl := printf "http://%s-api.%s.svc.cluster.local:%v" (include "mevn-stack.fullname" .) .Release.Namespace .Values.api.service.port }}
+{{- $resolvedApiBaseUrl := (index $webEnv "NUXT_PUBLIC_API_BASE_URL") | default $defaultApiBaseUrl }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "mevn-stack.fullname" . }}-web
   labels:
-    app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+    {{- include "mevn-stack.labels" . | nindent 4 }}
     app.kubernetes.io/component: web
 spec:
   replicas: {{ .Values.web.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+      {{- include "mevn-stack.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: web
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+        {{- include "mevn-stack.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: web
     spec:
       {{- with .Values.global.imagePullSecrets }}
@@ -37,9 +40,13 @@ spec:
               value: "0.0.0.0"
             - name: NITRO_PORT
               value: {{ .Values.web.containerPort | quote }}
-            {{- range $name, $value := .Values.web.env }}
+            - name: NUXT_PUBLIC_API_BASE_URL
+              value: {{ $resolvedApiBaseUrl | quote }}
+            {{- range $name, $value := $webEnv }}
+            {{- if ne $name "NUXT_PUBLIC_API_BASE_URL" }}
             - name: {{ $name }}
               value: {{ $value | quote }}
+            {{- end }}
             {{- end }}
           readinessProbe:
             httpGet:

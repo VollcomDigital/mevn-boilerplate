@@ -42,8 +42,7 @@ web:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 65
     targetMemoryUtilizationPercentage: 75
-  env:
-    NUXT_PUBLIC_API_BASE_URL: http://mevn-stack-api:4000
+  env: {}
 
 api:
   enabled: true

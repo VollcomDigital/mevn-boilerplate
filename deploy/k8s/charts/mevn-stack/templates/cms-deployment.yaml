@@ -4,18 +4,18 @@ kind: Deployment
 metadata:
   name: {{ include "mevn-stack.fullname" . }}-cms
   labels:
-    app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+    {{- include "mevn-stack.labels" . | nindent 4 }}
     app.kubernetes.io/component: cms
 spec:
   replicas: {{ .Values.cms.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+      {{- include "mevn-stack.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: cms
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "mevn-stack.name" . }}
+        {{- include "mevn-stack.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: cms
     spec:
       {{- with .Values.global.imagePullSecrets }}
