@@ -23,10 +23,22 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: cms
           image: "{{ .Values.cms.image.repository }}:{{ .Values.cms.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: {{ .Values.cms.containerPort }}
@@ -37,6 +49,31 @@ spec:
               value: "0.0.0.0"
             - name: STRAPI_PORT
               value: {{ .Values.cms.containerPort | quote }}
+            - name: STRAPI_APP_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-cms-secrets
+                  key: app-keys
+            - name: STRAPI_API_TOKEN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-cms-secrets
+                  key: api-token-salt
+            - name: STRAPI_ADMIN_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-cms-secrets
+                  key: admin-jwt-secret
+            - name: STRAPI_TRANSFER_TOKEN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-cms-secrets
+                  key: transfer-token-salt
+            - name: STRAPI_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mevn-cms-secrets
+                  key: jwt-secret
           readinessProbe:
             tcpSocket:
               port: http

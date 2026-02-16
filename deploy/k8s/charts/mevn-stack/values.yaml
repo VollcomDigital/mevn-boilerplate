@@ -86,7 +86,7 @@ api:
     OTEL_SERVICE_NAME: mevn-api
     TRUST_PROXY: "1"
     ALLOWED_ORIGINS: https://app.example.com
-    SESSION_SECRET: replace-via-secret
+    # SESSION_SECRET is now loaded from Kubernetes secret 'mevn-api-secrets'
 
 cms:
   enabled: true

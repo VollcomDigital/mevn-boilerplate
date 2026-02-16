@@ -12,9 +12,12 @@ import type { RedisClientType } from "redis";
 import { createClient } from "redis";
 
 import { AppError } from "./app-error";
+import { createHttpLogger, logger } from "./logger";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { metricsRegistry, observeHttpRequest } from "./metrics";
+import { generalRateLimiter } from "./rate-limit";
 import { startTelemetry } from "./telemetry";
+import { validateEnvironmentSecrets } from "./validation";
 
 const DEFAULT_PORT = 4000;
 const DEFAULT_HOST = "0.0.0.0";
@@ -103,7 +106,7 @@ async function initializeSessionLayer(app: express.Express): Promise<() => Promi
       throw new Error("REDIS_URL and SESSION_SECRET must be defined in production.");
     }
 
-    console.warn("Redis sessions disabled because REDIS_URL or SESSION_SECRET is missing.");
+    logger.warn("Redis sessions disabled because REDIS_URL or SESSION_SECRET is missing.");
     return async () => Promise.resolve();
   }
 
@@ -112,7 +115,7 @@ async function initializeSessionLayer(app: express.Express): Promise<() => Promi
   });
 
   redisClient.on("error", (error: Error) => {
-    console.error("Redis session client error", error);
+    logger.error({ err: error }, "Redis session client error");
   });
 
   await redisClient.connect();
@@ -145,16 +148,44 @@ async function initializeSessionLayer(app: express.Express): Promise<() => Promi
 function configureBaseMiddleware(app: express.Express): void {
   app.set("trust proxy", resolveTrustProxySetting());
 
-  app.use(helmet());
+  // Structured logging with automatic correlation IDs
+  app.use(createHttpLogger());
+
+  // Security headers with strict configuration
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"]
+        }
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+      }
+    })
+  );
+
+  // CORS with explicit origins
   app.use(
     cors({
       origin: resolveCorsOriginPolicy(),
       credentials: true
     })
   );
-  app.use(express.json({ limit: "1mb" }));
-  app.use(express.urlencoded({ extended: true }));
 
+  // Request size limits
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+  // Rate limiting
+  app.use(generalRateLimiter);
+
+  // Prometheus metrics timing
   app.use((req, res, next) => {
     const requestStartNs = process.hrtime.bigint();
 
@@ -224,6 +255,10 @@ function registerRoutes(app: express.Express, tracing: "enabled" | "disabled"): 
  * Boots the server and handles graceful signal termination.
  */
 async function bootstrap(): Promise<void> {
+  // CRITICAL: Validate secrets before starting server
+  validateEnvironmentSecrets(nodeEnvironment);
+  logger.info("Environment secrets validation passed");
+
   const telemetry = startTelemetry();
   const app = express();
 
@@ -233,7 +268,16 @@ async function bootstrap(): Promise<void> {
 
   const server = app.listen(apiPort, apiHost, () => {
     readinessState = "ready";
-    console.info(`API listening on http://${apiHost}:${apiPort}`);
+    logger.info(
+      {
+        host: apiHost,
+        port: apiPort,
+        nodeVersion: process.version,
+        environment: nodeEnvironment,
+        uptime: startedAtEpochMs
+      },
+      `API listening on http://${apiHost}:${apiPort}`
+    );
   });
 
   const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
@@ -242,10 +286,10 @@ async function bootstrap(): Promise<void> {
     }
 
     readinessState = "shutting_down";
-    console.info(`${signal} received, draining API traffic.`);
+    logger.info({ signal }, "Shutdown signal received, draining API traffic");
 
     const forceExitTimeout = setTimeout(() => {
-      console.error("Forced shutdown after timeout.");
+      logger.error("Forced shutdown after timeout");
       process.exit(1);
     }, SHUTDOWN_TIMEOUT_MS);
     forceExitTimeout.unref();
@@ -265,7 +309,8 @@ async function bootstrap(): Promise<void> {
     await telemetry.shutdown();
 
     clearTimeout(forceExitTimeout);
-    console.info(`API stopped after ${Date.now() - startedAtEpochMs}ms.`);
+    const shutdownDurationMs = Date.now() - startedAtEpochMs;
+    logger.info({ shutdownDurationMs }, "API stopped gracefully");
     process.exit(0);
   };
 
@@ -278,6 +323,6 @@ async function bootstrap(): Promise<void> {
 }
 
 void bootstrap().catch((error: unknown) => {
-  console.error("Fatal startup error", error);
+  logger.fatal({ err: error }, "Fatal startup error");
   process.exit(1);
 });
