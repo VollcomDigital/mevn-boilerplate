@@ -85,6 +85,8 @@ api:
     API_HOST: 0.0.0.0
     API_PORT: "4000"
     OTEL_SERVICE_NAME: mevn-api
+    TRUST_PROXY: "1"
+    ALLOWED_ORIGINS: https://app.example.com
     SESSION_SECRET: replace-via-secret
 
 cms:

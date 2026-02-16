@@ -4,7 +4,7 @@ import process from "node:process";
 
 import { apiInfoSchema } from "@mevn/shared";
 import { RedisStore } from "connect-redis";
-import cors from "cors";
+import cors, { type CorsOptions } from "cors";
 import express from "express";
 import session from "express-session";
 import helmet from "helmet";
@@ -20,6 +20,8 @@ const DEFAULT_PORT = 4000;
 const DEFAULT_HOST = "0.0.0.0";
 const SHUTDOWN_TIMEOUT_MS = 10000;
 const SESSION_COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24;
+const DEFAULT_DEV_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"];
+const UNMATCHED_ROUTE_LABEL = "unmatched_route";
 
 const apiPort = Number(process.env.API_PORT ?? DEFAULT_PORT);
 const apiHost = process.env.API_HOST ?? DEFAULT_HOST;
@@ -31,6 +33,65 @@ let readinessState: ReadinessState = "starting";
 const startedAtEpochMs = Date.now();
 
 /**
+ * Parses comma-separated environment variables into normalized tokens.
+ */
+function parseCsvEnv(value: string | undefined): string[] {
+  if (value === undefined) {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+/**
+ * Resolves the Express trust-proxy strategy from environment configuration.
+ */
+function resolveTrustProxySetting(): boolean | number | string {
+  const trustProxyRaw = process.env.TRUST_PROXY;
+
+  if (trustProxyRaw === undefined || trustProxyRaw.trim() === "") {
+    return nodeEnvironment === "production" ? 1 : false;
+  }
+
+  const normalized = trustProxyRaw.trim().toLowerCase();
+
+  if (normalized === "true") {
+    return true;
+  }
+
+  if (normalized === "false") {
+    return false;
+  }
+
+  const hopCount = Number(trustProxyRaw);
+  if (Number.isInteger(hopCount) && hopCount >= 0) {
+    return hopCount;
+  }
+
+  return trustProxyRaw;
+}
+
+/**
+ * Returns the CORS origin policy for browser-based API access.
+ */
+function resolveCorsOriginPolicy(): CorsOptions["origin"] {
+  const configuredOrigins = parseCsvEnv(process.env.ALLOWED_ORIGINS);
+
+  if (configuredOrigins.length > 0) {
+    return configuredOrigins;
+  }
+
+  if (nodeEnvironment === "production") {
+    throw new Error("ALLOWED_ORIGINS must be defined in production.");
+  }
+
+  return [...DEFAULT_DEV_ALLOWED_ORIGINS];
+}
+
+/**
  * Attaches Redis-backed session middleware to avoid in-memory state.
  */
 async function initializeSessionLayer(app: express.Express): Promise<() => Promise<void>> {
@@ -38,6 +99,11 @@ async function initializeSessionLayer(app: express.Express): Promise<() => Promi
   const sessionSecret = process.env.SESSION_SECRET;
 
   if (redisUrl === undefined || sessionSecret === undefined) {
+    if (nodeEnvironment === "production") {
+      throw new Error("REDIS_URL and SESSION_SECRET must be defined in production.");
+    }
+
+    console.warn("Redis sessions disabled because REDIS_URL or SESSION_SECRET is missing.");
     return async () => Promise.resolve();
   }
 
@@ -77,10 +143,15 @@ async function initializeSessionLayer(app: express.Express): Promise<() => Promi
  * Registers middleware that should run for every request.
  */
 function configureBaseMiddleware(app: express.Express): void {
-  app.set("trust proxy", true);
+  app.set("trust proxy", resolveTrustProxySetting());
 
   app.use(helmet());
-  app.use(cors());
+  app.use(
+    cors({
+      origin: resolveCorsOriginPolicy(),
+      credentials: true
+    })
+  );
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true }));
 
@@ -89,7 +160,7 @@ function configureBaseMiddleware(app: express.Express): void {
 
     res.on("finish", () => {
       const requestDurationSeconds = Number(process.hrtime.bigint() - requestStartNs) / 1_000_000_000;
-      const routePath = req.route?.path !== undefined ? String(req.route.path) : req.path;
+      const routePath = req.route?.path !== undefined ? String(req.route.path) : UNMATCHED_ROUTE_LABEL;
       observeHttpRequest(req.method, routePath, res.statusCode, requestDurationSeconds);
     });
 
