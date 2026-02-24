@@ -1,4 +1,4 @@
-FROM node:22-alpine AS deps
+FROM node:25-alpine AS deps
 
 WORKDIR /workspace/apps/cms
 
@@ -12,7 +12,7 @@ COPY apps/cms ./
 
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:25-alpine AS runner
 
 WORKDIR /workspace/apps/cms
 
