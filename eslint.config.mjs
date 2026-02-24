@@ -33,6 +33,7 @@ export default tseslint.config(
     ]
   },
   {
+    files: ["**/*.ts", "**/*.tsx"],
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -50,7 +51,11 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-assignment": "error",
       "@typescript-eslint/no-unsafe-call": "error",
       "@typescript-eslint/no-unsafe-member-access": "error",
-      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/no-unsafe-return": "error"
+    }
+  },
+  {
+    rules: {
       "no-console": [
         "warn",
         {
