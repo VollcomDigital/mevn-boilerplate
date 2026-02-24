@@ -19,7 +19,7 @@
 - [x] PR limits are configured per directory (3-10 depending on scope)
 - [x] Dependency grouping strategies are defined (minor/patch, security, framework-specific)
 - [x] Labels and semantic commit message prefixes are configured
-- [ ] Add Helm chart dependency updates — the `deploy/k8s/charts/` directory is not tracked by Dependabot for Helm chart version bumps
+- [x] ~~Add Helm chart dependency updates~~ — resolved: added `helm` ecosystem entry for `deploy/k8s/charts/mevn-stack`
 
 ---
 
@@ -34,8 +34,8 @@
 - [x] Dependency Review workflow exists (`.github/workflows/dependency-review.yml`) for PR-based dependency vulnerability scanning
 - [x] Dependency Review configured to fail on `high` severity and deny copyleft licenses (GPL, LGPL)
 - [x] CI pipeline includes `pnpm audit --audit-level=high` as part of the security scan job
-- [ ] Pin the `docker/build-push-action` in `ci.yml` to `v6` — currently at `v5`, which may miss security fixes in the latest major release
-- [ ] Remove `continue-on-error: true` from the `pnpm audit` step in `ci.yml` or add a separate required audit job — currently audit failures are silently ignored
+- [x] ~~Pin the `docker/build-push-action` in `ci.yml` to `v6`~~ — resolved: bumped from `v5` to `v6`
+- [x] ~~Remove `continue-on-error: true` from the `pnpm audit` step in `ci.yml`~~ — resolved: audit failures now fail the build
 
 ---
 
@@ -50,8 +50,8 @@
 - [x] Quality gate enforcement enabled (`sonar.qualitygate.wait=true`)
 - [x] Security hotspot detection enabled
 - [x] Duplication detection configured
-- [ ] Pin SonarQube GitHub Actions to a specific version — `SonarSource/sonarqube-scan-action@master` and `SonarSource/sonarqube-quality-gate-action@master` should use a tagged release (e.g., `@v5`) to prevent supply-chain attacks via compromised `master` branch
-- [ ] Remove `continue-on-error: true` from the SonarQube Quality Gate step — this silently passes failing quality gates, negating the gate's purpose
+- [x] ~~Pin SonarQube GitHub Actions to a specific version~~ — resolved: pinned scan action to `@v7` and quality gate to `@v1`
+- [x] ~~Remove `continue-on-error: true` from the SonarQube Quality Gate step~~ — resolved: quality gate failures now fail the build
 - [ ] Uncomment and configure test/coverage reporting paths once tests are added — `sonar.tests` and `sonar.javascript.lcov.reportPaths` are currently commented out
 
 ---
@@ -70,7 +70,7 @@
 - [x] No unsafe deserialization patterns detected (`pickle.loads`, `yaml.load` without SafeLoader)
 - [x] Secrets loaded from environment variables with startup validation (`apps/api/src/validation.ts`)
 - [x] Logger redacts sensitive fields (`password`, `token`, `secret`, `apiKey`)
-- [ ] Remove hardcoded default PostgreSQL credentials in `apps/cms/config/database.js` (line 20) — the fallback `postgres://postgres:postgres@localhost:5432/strapi` embeds a default username and password; the function should throw an error if `DATABASE_URL` is not set when `DATABASE_CLIENT=postgres`
+- [x] ~~Remove hardcoded default PostgreSQL credentials in `apps/cms/config/database.js`~~ — resolved: now throws an error if `DATABASE_URL` is not set when `DATABASE_CLIENT=postgres`
 
 ---
 
@@ -92,32 +92,23 @@
 - [x] TypeScript strict base config (`tsconfig.base.json`)
 - [x] `.nvmrc` present (Node.js 22)
 - [x] `.dockerignore` present
-- [ ] Create `MAINTENANCE_AUDIT.md` — referenced in `README.md` Documentation section but the file did not exist (now created by this audit)
-- [ ] Add GitHub Issue Templates (`.github/ISSUE_TEMPLATE/`) — no bug report or feature request templates exist for standardized issue intake
-- [ ] Add GitHub Pull Request Template (`.github/PULL_REQUEST_TEMPLATE.md`) — no PR template exists to enforce the PR checklist defined in `CONTRIBUTING.md`
-- [ ] Add a `docker-compose.yml` for local development — referenced in `README.md` Docker section but the file does not exist in the repository
-- [ ] Update the pnpm badge in `README.md` — badge shows `>=9.0.0` but `packageManager` in `package.json` specifies `pnpm@10.6.5`
+- [x] ~~Create `MAINTENANCE_AUDIT.md`~~ — resolved: file created by this audit
+- [x] ~~Add GitHub Issue Templates (`.github/ISSUE_TEMPLATE/`)~~ — resolved: added bug report and feature request templates
+- [x] ~~Add GitHub Pull Request Template (`.github/PULL_REQUEST_TEMPLATE.md`)~~ — resolved: added PR template matching `CONTRIBUTING.md` checklist
+- [x] ~~Add a `docker-compose.yml` for local development~~ — resolved: added compose file with MongoDB, Redis, API, Web, and CMS services
+- [x] ~~Update the pnpm badge in `README.md`~~ — resolved: badge updated from `>=9.0.0` to `>=10.0.0`
 
 ---
 
 ## Summary
 
-| Audit Area | Status | Open Items |
-| --- | --- | --- |
-| Dependency Management (Dependabot) | **Pass** | 1 |
-| Vulnerability Alerts (GitHub Security) | **Pass** | 2 |
-| SonarQube Cloud Integration | **Pass** | 3 |
-| AI-Powered Threat Detection | **Pass** | 1 |
-| Compliance and Best Practices | **Pass** | 5 |
-| **Total** | **Pass** | **12** |
+| Audit Area | Status | Found | Resolved | Remaining |
+| --- | --- | --- | --- | --- |
+| Dependency Management (Dependabot) | **Pass** | 1 | 1 | 0 |
+| Vulnerability Alerts (GitHub Security) | **Pass** | 2 | 2 | 0 |
+| SonarQube Cloud Integration | **Pass** | 3 | 2 | 1 |
+| AI-Powered Threat Detection | **Pass** | 1 | 1 | 0 |
+| Compliance and Best Practices | **Pass** | 5 | 5 | 0 |
+| **Total** | **Pass** | **12** | **11** | **1** |
 
-All five core audit areas pass. There are **12 open action items** — none are critical blockers, but addressing them will strengthen the security posture and developer experience of this boilerplate.
-
-### Priority Recommendations
-
-1. **High** — Pin SonarQube GitHub Actions to tagged releases instead of `@master`
-2. **High** — Remove hardcoded default PostgreSQL credentials in CMS database config
-3. **Medium** — Remove `continue-on-error` from SonarQube Quality Gate and audit steps
-4. **Medium** — Add GitHub Issue and PR templates
-5. **Low** — Add `docker-compose.yml` for local development
-6. **Low** — Update README badge for pnpm version accuracy
+All five core audit areas pass. **12 items** were identified during the audit; **11 have been resolved** in this maintenance pass. The **1 remaining item** (uncomment SonarQube test/coverage config) is deferred until the test suite is implemented.
