@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
-[![pnpm](https://img.shields.io/badge/pnpm-%3E%3D9.0.0-orange)](https://pnpm.io/)
+[![pnpm](https://img.shields.io/badge/pnpm-%3E%3D10.0.0-orange)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 
 Enterprise-grade monorepo scaffold for a cloud-native MEVN platform with production-ready security, observability, and DevOps automation.
@@ -200,11 +200,17 @@ docker build -f apps/web/Dockerfile -t mevn-web:latest .
 docker build -f apps/cms/Dockerfile -t mevn-cms:latest .
 ```
 
-### Run with Docker Compose (example)
+### Run with Docker Compose
 
 ```bash
-# Create docker-compose.yml with your services
-docker-compose up -d
+# Start all services (MongoDB, Redis, API, Web, CMS)
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Shut down
+docker compose down
 ```
 
 ## ☸️ Kubernetes Deployment
