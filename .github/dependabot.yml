@@ -18,10 +18,9 @@ updates:
           - "patch"
       # Group security updates separately for faster merging
       security-updates:
+        applies-to: security-updates
         patterns:
           - "*"
-        update-types:
-          - "security"
     labels:
       - "dependencies"
       - "automated"

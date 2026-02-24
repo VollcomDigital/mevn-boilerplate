@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { AppError } from "../app-error";
+import { logger } from "../logger";
 
 /**
  * Emits a typed 404 when no route matched the incoming request.
@@ -40,12 +41,12 @@ export function errorHandler(
     return;
   }
 
-  const fallbackMessage = error instanceof Error ? error.message : "Unexpected server error";
+  logger.error({ err: error }, "Unhandled application error");
 
   res.status(500).json({
     error: {
       code: "internal_server_error",
-      message: fallbackMessage
+      message: "Internal server error"
     }
   });
 }

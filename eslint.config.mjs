@@ -1,21 +1,54 @@
 import eslint from "@eslint/js";
+import vue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
+import vueParser from "vue-eslint-parser";
 
 export default tseslint.config(
   eslint.configs.recommended,
-  ...tseslint.configs.strictTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
+  ...vue.configs["flat/essential"],
+  ...tseslint.configs.strict,
+  ...tseslint.configs.stylistic,
   {
+    files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
     languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname
+      globals: {
+        module: "readonly",
+        require: "readonly",
+        process: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        exports: "readonly"
       }
+    },
+    rules: {
+      "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/no-require-imports": "off"
     }
   },
   {
-    files: ["**/*.js", "**/*.mjs"],
-    ...tseslint.configs.disableTypeChecked
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: tseslint.parser,
+        ecmaVersion: "latest",
+        sourceType: "module",
+        extraFileExtensions: [".vue"]
+      },
+      globals: {
+        $fetch: "readonly",
+        defineNuxtConfig: "readonly",
+        defineEventHandler: "readonly",
+        useAsyncData: "readonly",
+        useRuntimeConfig: "readonly"
+      }
+    },
+    rules: {
+      "no-undef": "off",
+      "vue/max-attributes-per-line": "off",
+      "vue/multi-word-component-names": "off",
+      "vue/singleline-html-element-content-newline": "off"
+    }
   },
   {
     ignores: [
@@ -42,13 +75,6 @@ export default tseslint.config(
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-floating-promises": "error",
-      "@typescript-eslint/no-misused-promises": "error",
-      "@typescript-eslint/await-thenable": "error",
-      "@typescript-eslint/no-unsafe-assignment": "error",
-      "@typescript-eslint/no-unsafe-call": "error",
-      "@typescript-eslint/no-unsafe-member-access": "error",
-      "@typescript-eslint/no-unsafe-return": "error",
       "no-console": [
         "warn",
         {

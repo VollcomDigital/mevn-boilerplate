@@ -11,6 +11,12 @@ coverage
 *.log
 .env
 .env.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
 .DS_Store
 
 # Kubernetes secrets (never commit actual secrets)

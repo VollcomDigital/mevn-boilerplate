@@ -29,6 +29,12 @@ const UNMATCHED_ROUTE_LABEL = "unmatched_route";
 const apiPort = Number(process.env.API_PORT ?? DEFAULT_PORT);
 const apiHost = process.env.API_HOST ?? DEFAULT_HOST;
 const nodeEnvironment = process.env.NODE_ENV ?? "development";
+const configuredMetricsToken = process.env.METRICS_TOKEN?.trim();
+const metricsAuthToken =
+  configuredMetricsToken !== undefined && configuredMetricsToken.length > 0
+    ? configuredMetricsToken
+    : undefined;
+const metricsEndpointEnabled = nodeEnvironment !== "production" || metricsAuthToken !== undefined;
 
 type ReadinessState = "starting" | "ready" | "shutting_down";
 
@@ -139,7 +145,9 @@ async function initializeSessionLayer(app: express.Express): Promise<() => Promi
     })
   );
 
-  return async () => redisClient.quit();
+  return async () => {
+    await redisClient.quit();
+  };
 }
 
 /**
@@ -216,10 +224,27 @@ function registerRoutes(app: express.Express, tracing: "enabled" | "disabled"): 
     res.status(200).json({ status: "ready" });
   });
 
-  app.get("/metrics", async (_req, res) => {
-    res.setHeader("Content-Type", metricsRegistry.contentType);
-    res.end(await metricsRegistry.metrics());
-  });
+  if (metricsEndpointEnabled) {
+    app.get("/metrics", async (req, res) => {
+      if (metricsAuthToken !== undefined) {
+        const authorizationHeader = req.get("authorization");
+        if (authorizationHeader !== `Bearer ${metricsAuthToken}`) {
+          res.status(401).json({
+            error: {
+              code: "metrics_unauthorized",
+              message: "Unauthorized metrics access"
+            }
+          });
+          return;
+        }
+      }
+
+      res.setHeader("Content-Type", metricsRegistry.contentType);
+      res.end(await metricsRegistry.metrics());
+    });
+  } else {
+    logger.warn("Metrics endpoint disabled in production because METRICS_TOKEN is not configured.");
+  }
 
   app.get("/api/v1/info", async (_req, res) => {
     const payload = apiInfoSchema.parse({
