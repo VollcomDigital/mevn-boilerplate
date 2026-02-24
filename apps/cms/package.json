@@ -6,7 +6,7 @@
     "build": "strapi build",
     "develop": "strapi develop",
     "start": "strapi start",
-    "lint": "echo \"No lint configured for @mevn/cms\"",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "echo \"No typecheck configured for @mevn/cms\"",
     "clean": "rimraf .cache build"
   },

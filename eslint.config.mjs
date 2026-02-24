@@ -1,8 +1,10 @@
 import eslint from "@eslint/js";
+import vue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   eslint.configs.recommended,
+  ...vue.configs["flat/recommended"],
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
   {
@@ -14,7 +16,7 @@ export default tseslint.config(
     }
   },
   {
-    files: ["**/*.js", "**/*.mjs"],
+    files: ["**/*.js", "**/*.mjs", "**/*.vue"],
     ...tseslint.configs.disableTypeChecked
   },
   {

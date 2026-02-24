@@ -1,5 +1,14 @@
 import process from "node:process";
 
+function isPlaceholderSecret(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.includes("changeme") ||
+    normalized.includes("replace") ||
+    normalized.includes("example")
+  );
+}
+
 /**
  * Validates that critical environment variables are set and not using default placeholder values.
  * 
@@ -35,29 +44,35 @@ export function validateEnvironmentSecrets(nodeEnvironment: string): void {
 
   // STRAPI secrets validation (if CMS is running in same process or env is shared)
   const strapiAppKeys = process.env.STRAPI_APP_KEYS;
-  if (strapiAppKeys !== undefined && strapiAppKeys.includes("changeMe")) {
-    errors.push("STRAPI_APP_KEYS contains default 'changeMe' values - generate secure keys");
+  if (
+    strapiAppKeys !== undefined &&
+    strapiAppKeys
+      .split(",")
+      .map((key) => key.trim())
+      .some((key) => key.length > 0 && isPlaceholderSecret(key))
+  ) {
+    errors.push("STRAPI_APP_KEYS contains placeholder values - generate secure keys");
   }
 
   const strapiJwtSecret = process.env.STRAPI_JWT_SECRET;
-  if (strapiJwtSecret !== undefined && strapiJwtSecret === "changeMe") {
-    errors.push("STRAPI_JWT_SECRET is set to default 'changeMe' - generate a secure secret");
+  if (strapiJwtSecret !== undefined && isPlaceholderSecret(strapiJwtSecret)) {
+    errors.push("STRAPI_JWT_SECRET is set to a placeholder value - generate a secure secret");
   }
 
   const strapiAdminJwt = process.env.STRAPI_ADMIN_JWT_SECRET;
-  if (strapiAdminJwt !== undefined && strapiAdminJwt === "changeMe") {
-    errors.push("STRAPI_ADMIN_JWT_SECRET is set to default 'changeMe' - generate a secure secret");
+  if (strapiAdminJwt !== undefined && isPlaceholderSecret(strapiAdminJwt)) {
+    errors.push("STRAPI_ADMIN_JWT_SECRET is set to a placeholder value - generate a secure secret");
   }
 
   const strapiApiTokenSalt = process.env.STRAPI_API_TOKEN_SALT;
-  if (strapiApiTokenSalt !== undefined && strapiApiTokenSalt === "changeMe") {
-    errors.push("STRAPI_API_TOKEN_SALT is set to default 'changeMe' - generate a secure secret");
+  if (strapiApiTokenSalt !== undefined && isPlaceholderSecret(strapiApiTokenSalt)) {
+    errors.push("STRAPI_API_TOKEN_SALT is set to a placeholder value - generate a secure secret");
   }
 
   const strapiTransferTokenSalt = process.env.STRAPI_TRANSFER_TOKEN_SALT;
-  if (strapiTransferTokenSalt !== undefined && strapiTransferTokenSalt === "changeMe") {
+  if (strapiTransferTokenSalt !== undefined && isPlaceholderSecret(strapiTransferTokenSalt)) {
     errors.push(
-      "STRAPI_TRANSFER_TOKEN_SALT is set to default 'changeMe' - generate a secure secret"
+      "STRAPI_TRANSFER_TOKEN_SALT is set to a placeholder value - generate a secure secret"
     );
   }
 
