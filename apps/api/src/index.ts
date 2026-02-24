@@ -145,7 +145,9 @@ async function initializeSessionLayer(app: express.Express): Promise<() => Promi
     })
   );
 
-  return async () => redisClient.quit();
+  return async () => {
+    await redisClient.quit();
+  };
 }
 
 /**

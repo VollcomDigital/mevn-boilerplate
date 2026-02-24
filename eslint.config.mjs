@@ -1,6 +1,7 @@
 import eslint from "@eslint/js";
 import vue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
+import vueParser from "vue-eslint-parser";
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -22,6 +23,18 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-empty-function": "off",
       "@typescript-eslint/no-require-imports": "off"
+    }
+  },
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: tseslint.parser,
+        ecmaVersion: "latest",
+        sourceType: "module",
+        extraFileExtensions: [".vue"]
+      }
     }
   },
   {
