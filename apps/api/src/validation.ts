@@ -45,11 +45,10 @@ export function validateEnvironmentSecrets(nodeEnvironment: string): void {
   // STRAPI secrets validation (if CMS is running in same process or env is shared)
   const strapiAppKeys = process.env.STRAPI_APP_KEYS;
   if (
-    strapiAppKeys !== undefined &&
     strapiAppKeys
-      .split(",")
+      ?.split(",")
       .map((key) => key.trim())
-      .some((key) => key.length > 0 && isPlaceholderSecret(key))
+      .some((key) => key.length > 0 && isPlaceholderSecret(key)) === true
   ) {
     errors.push("STRAPI_APP_KEYS contains placeholder values - generate secure keys");
   }

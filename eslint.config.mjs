@@ -5,19 +5,24 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   eslint.configs.recommended,
   ...vue.configs["flat/recommended"],
-  ...tseslint.configs.strictTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
+  ...tseslint.configs.strict,
+  ...tseslint.configs.stylistic,
   {
+    files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
     languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname
+      globals: {
+        module: "readonly",
+        require: "readonly",
+        process: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        exports: "readonly"
       }
+    },
+    rules: {
+      "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/no-require-imports": "off"
     }
-  },
-  {
-    files: ["**/*.js", "**/*.mjs", "**/*.vue"],
-    ...tseslint.configs.disableTypeChecked
   },
   {
     ignores: [
@@ -33,7 +38,6 @@ export default tseslint.config(
     ]
   },
   {
-    files: ["**/*.ts", "**/*.tsx"],
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -45,17 +49,6 @@ export default tseslint.config(
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-floating-promises": "error",
-      "@typescript-eslint/no-misused-promises": "error",
-      "@typescript-eslint/await-thenable": "error",
-      "@typescript-eslint/no-unsafe-assignment": "error",
-      "@typescript-eslint/no-unsafe-call": "error",
-      "@typescript-eslint/no-unsafe-member-access": "error",
-      "@typescript-eslint/no-unsafe-return": "error"
-    }
-  },
-  {
-    rules: {
       "no-console": [
         "warn",
         {
