@@ -5,7 +5,7 @@ import vueParser from "vue-eslint-parser";
 
 export default tseslint.config(
   eslint.configs.recommended,
-  ...vue.configs["flat/recommended"],
+  ...vue.configs["flat/essential"],
   ...tseslint.configs.strict,
   ...tseslint.configs.stylistic,
   {
@@ -34,7 +34,20 @@ export default tseslint.config(
         ecmaVersion: "latest",
         sourceType: "module",
         extraFileExtensions: [".vue"]
+      },
+      globals: {
+        $fetch: "readonly",
+        defineNuxtConfig: "readonly",
+        defineEventHandler: "readonly",
+        useAsyncData: "readonly",
+        useRuntimeConfig: "readonly"
       }
+    },
+    rules: {
+      "no-undef": "off",
+      "vue/max-attributes-per-line": "off",
+      "vue/multi-word-component-names": "off",
+      "vue/singleline-html-element-content-newline": "off"
     }
   },
   {
