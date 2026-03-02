@@ -3,7 +3,7 @@ FROM node:25-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=${PNPM_HOME}:${PATH}
 
-RUN corepack enable
+RUN npm install --global corepack@latest && corepack enable
 
 WORKDIR /workspace
 
@@ -23,7 +23,7 @@ COPY packages/shared packages/shared
 RUN pnpm --filter @mevn/shared build
 RUN pnpm --filter @mevn/web build
 
-FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runner
+FROM gcr.io/distroless/nodejs25-debian12:nonroot AS runner
 
 WORKDIR /workspace/apps/web
 
