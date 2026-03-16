@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@mevn/shared": "workspace:*",
-    "nuxt": "^4.1.0"
+    "nuxt": "^4.4.2"
   },
   "devDependencies": {
     "rimraf": "^6.0.1"
