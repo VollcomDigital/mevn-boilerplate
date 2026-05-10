@@ -1,0 +1,64 @@
+{
+  "scan_metadata": {
+    "repository": "VollcomDigital/mevn-boilerplate",
+    "branch": "main",
+    "scan_type": "at-rest-security-review",
+    "scan_date": "2026-05-10T09:00:00Z",
+    "scanner": "cursor-cloud-agent"
+  },
+  "summary": {
+    "total_findings": 3,
+    "critical": 0,
+    "high": 0,
+    "medium": 3
+  },
+  "findings": [
+    {
+      "id": "MEVN-SEC-001",
+      "severity": "medium",
+      "location": "apps/cms/config/database.js:35",
+      "description": "CMS PostgreSQL connections default to unencrypted (SSL disabled). When `DATABASE_CLIENT=postgres`, the `DATABASE_SSL` environment variable defaults to `\"false\"`, causing all database traffic — including authentication credentials and CMS content — to traverse the network in cleartext. The production validation enforces `DATABASE_URL` presence and blocks default credentials, but does not enforce or default to SSL.",
+      "impact": "A network-level attacker (compromised adjacent pod, network tap, misconfigured VPC peering) can intercept PostgreSQL credentials and all CMS data including admin credentials, content, API tokens, and transfer tokens stored in the database.",
+      "verified": true,
+      "attack_path": "1. Attacker gains network access to the link between the CMS pod and PostgreSQL (e.g., compromised pod in the same Kubernetes cluster, or VPC misconfiguration)\n2. Attacker captures PostgreSQL traffic in cleartext — credentials flow unencrypted during the connection handshake (MD5 or SCRAM exchange is visible)\n3. Attacker extracts database credentials from captured traffic\n4. Attacker connects directly to the database, exfiltrating or modifying all CMS content, user accounts, and secrets",
+      "evidence": [
+        "apps/cms/config/database.js:35 — ssl: env(\"DATABASE_SSL\", \"false\") === \"true\"",
+        "apps/cms/config/database.js:20-28 — production validation checks URL presence but not SSL"
+      ],
+      "remediation": "Default `DATABASE_SSL` to `\"true\"` in production, or add an explicit production validation check that throws if SSL is disabled:\n\n```javascript\nif (nodeEnvironment === \"production\" && env(\"DATABASE_SSL\", \"false\") !== \"true\") {\n  throw new Error(\"DATABASE_SSL must be enabled in production for encrypted database connections.\");\n}\n```",
+      "poc_video_notes": "Video not feasible — requires network-level packet capture between CMS and PostgreSQL pods in a live cluster. The vulnerability is confirmed by reading the source: SSL defaults to false with no production enforcement."
+    },
+    {
+      "id": "MEVN-SEC-002",
+      "severity": "medium",
+      "location": "deploy/k8s/charts/mevn-stack/templates/",
+      "description": "The Helm chart deploys three services (API on port 4000, Web on port 3000, CMS/Strapi on port 1337) without any Kubernetes NetworkPolicy resources. In a cluster with a CNI that supports NetworkPolicies, the absence of policies means every pod in the namespace can reach every service unrestricted. The Strapi CMS admin panel is particularly sensitive as it provides full content management, user management, and API token generation capabilities.",
+      "impact": "A compromised pod anywhere in the namespace can directly access the Strapi CMS admin panel, the Express API, and potentially the backing databases (MongoDB, Redis, PostgreSQL). This eliminates network-layer defense-in-depth and expands the blast radius of any single-pod compromise to full-stack access.",
+      "verified": true,
+      "attack_path": "1. Attacker compromises any pod in the same Kubernetes namespace (e.g., via a vulnerability in another deployed application or supply-chain attack)\n2. From the compromised pod, attacker discovers the CMS service via Kubernetes DNS: `<release>-mevn-stack-cms.<namespace>.svc.cluster.local:1337`\n3. Attacker accesses the Strapi admin panel at `/admin` — no network-level controls block this\n4. Attacker brute-forces admin credentials (no rate limiting on Strapi admin login by default) or exploits known Strapi CVEs\n5. Full CMS compromise: content modification, admin account creation, API token generation, and database access via Strapi's admin API",
+      "evidence": [
+        "deploy/k8s/charts/mevn-stack/templates/ — no NetworkPolicy templates exist",
+        "deploy/k8s/charts/mevn-stack/templates/cms-service.yaml — CMS exposed as ClusterIP with no ingress restriction",
+        "deploy/k8s/charts/mevn-stack/templates/api-service.yaml — API exposed as ClusterIP with no ingress restriction"
+      ],
+      "remediation": "Add NetworkPolicy templates to the Helm chart. At minimum:\n\n```yaml\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: {{ include \"mevn-stack.fullname\" . }}-cms-ingress\nspec:\n  podSelector:\n    matchLabels:\n      app.kubernetes.io/component: cms\n  policyTypes:\n    - Ingress\n  ingress:\n    - from:\n        - podSelector:\n            matchLabels:\n              app.kubernetes.io/component: api\n      ports:\n        - port: 1337\n```\n\nRestrict CMS ingress to only the API pod (if CMS content is consumed via API) and authorized admin access. Apply similar policies to the API (allow from web + ingress controller only) and web (allow from ingress controller only).",
+      "poc_video_notes": "Video not feasible — requires a live Kubernetes cluster with multiple pods to demonstrate lateral movement. The vulnerability is confirmed by inspecting the Helm chart: no NetworkPolicy templates exist anywhere in the chart."
+    },
+    {
+      "id": "MEVN-SEC-003",
+      "severity": "medium",
+      "location": "apps/api/src/index.ts:61-84",
+      "description": "The `resolveTrustProxySetting()` function accepts `TRUST_PROXY=true`, which configures Express to trust ALL proxy hops. When set, Express derives the client IP from the leftmost value in the `X-Forwarded-For` header — which is attacker-controlled. Since `express-rate-limit` uses this derived IP for rate limiting, an attacker can bypass all rate limits by rotating the `X-Forwarded-For` header. Note: the default in production is `1` (trust one hop), which is secure. This finding applies when operators explicitly set `TRUST_PROXY=true`.",
+      "impact": "Complete bypass of both the general rate limiter (100 req/15min) and the auth rate limiter (5 req/15min). This enables brute-force attacks against any future authentication endpoints and high-volume abuse of all API endpoints. The `authRateLimiter` defined in `rate-limit.ts` becomes completely ineffective.",
+      "verified": true,
+      "attack_path": "1. Deployment operator sets `TRUST_PROXY=true` (a commonly used Express configuration value, explicitly handled by the code at line 70-71)\n2. Express resolves client IP from the leftmost `X-Forwarded-For` value, which is set by the client\n3. Attacker sends requests with rotating `X-Forwarded-For` headers: `X-Forwarded-For: 10.0.0.1`, `X-Forwarded-For: 10.0.0.2`, etc.\n4. `express-rate-limit` treats each spoofed IP as a unique client\n5. Rate limits never trigger — attacker achieves unlimited request throughput\n6. Attacker can brute-force session secrets, enumerate endpoints, or perform denial-of-service",
+      "evidence": [
+        "apps/api/src/index.ts:70-71 — if (normalized === \"true\") { return true; }",
+        "apps/api/src/index.ts:157 — app.set(\"trust proxy\", resolveTrustProxySetting());",
+        "apps/api/src/rate-limit.ts:19-34 — generalRateLimiter uses default IP-based keying"
+      ],
+      "remediation": "Remove the `true` case from `resolveTrustProxySetting()`, or add a warning log when `TRUST_PROXY=true` is set. Prefer numeric hop counts (e.g., `1`, `2`) or specific proxy subnet strings:\n\n```typescript\nif (normalized === \"true\") {\n  logger.warn(\n    \"TRUST_PROXY=true trusts ALL proxies and allows IP spoofing. \" +\n    \"Use a numeric hop count (e.g., 1) or specific proxy IP instead.\"\n  );\n  return true;\n}\n```\n\nAlternatively, reject `true` in production entirely:\n\n```typescript\nif (normalized === \"true\" && nodeEnvironment === \"production\") {\n  throw new Error(\n    \"TRUST_PROXY=true is unsafe in production (enables IP spoofing). \" +\n    \"Use a numeric hop count or specific proxy IP.\"\n  );\n}\n```",
+      "poc_video_notes": "Video not feasible — requires a running API instance with TRUST_PROXY=true. The vulnerability is confirmed by code analysis: Express `trust proxy: true` uses the leftmost X-Forwarded-For value (RFC 7239), and express-rate-limit keys on req.ip by default."
+    }
+  ]
+}
